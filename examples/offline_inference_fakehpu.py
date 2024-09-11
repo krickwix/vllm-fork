@@ -1,5 +1,6 @@
-from vllm import LLM, SamplingParams
 import os
+
+from vllm import LLM, SamplingParams
 
 if os.environ.get('VLLM_USE_FAKE_HPU', '0') != '0':
     from vllm.utils import migrate_to_cpu
