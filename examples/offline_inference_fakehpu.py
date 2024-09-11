@@ -1,12 +1,7 @@
-import argparse
-
 from vllm import LLM, SamplingParams
+import os
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--fake_hpu', action='store_true')
-args = parser.parse_args()
-
-if args.fake_hpu:
+if os.environ.get('VLLM_USE_FAKE_HPU', '0') != '0':
     from vllm.utils import migrate_to_cpu
     migrate_to_cpu()
 
