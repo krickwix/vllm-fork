@@ -8,7 +8,7 @@ from typing import Any, List, Optional
 
 import torch
 
-from vllm.executor.habana_executor import _create_worker
+from vllm.executor.habana_executor import create_worker
 from vllm.logger import init_logger
 from vllm.triton_utils import maybe_set_triton_cache_manager
 from vllm.executor.multiproc_worker_utils import (ProcessWorkerWrapper,
@@ -83,7 +83,7 @@ class MultiprocessingHabanaExecutor(DistributedGPUExecutor):
                 worker = ProcessWorkerWrapper(
                     result_handler,
                     partial(
-                        _create_worker,
+                        create_worker,
                         **self._get_create_worker_kwargs(
                             rank=rank,
                             local_rank=rank,
@@ -124,7 +124,7 @@ class MultiprocessingHabanaExecutor(DistributedGPUExecutor):
         world_size = self.parallel_config.world_size
         tensor_parallel_size = self.parallel_config.tensor_parallel_size
 
-        hpu_device_count = hthpu.device_cout()
+        hpu_device_count = hthpu.device_count()
         # Use confusing message for more common TP-only case.
         assert tensor_parallel_size <= hpu_device_count, (
             f"please set tensor_parallel_size ({tensor_parallel_size}) "

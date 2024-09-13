@@ -1,10 +1,10 @@
-###############################################################################
+##############################################################################
 # Copyright (C) 2024 Habana Labs, Ltd. an Intel Company
 ###############################################################################
 
 import contextlib
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Callable, Type
 
 from vllm.executor.executor_base import ExecutorAsyncBase, ExecutorBase
 from vllm.logger import init_logger
@@ -13,10 +13,19 @@ from vllm.prompt_adapter.request import PromptAdapterRequest
 from vllm.sequence import ExecuteModelRequest, SamplerOutput
 from vllm.utils import (HabanaMemoryProfiler, get_distributed_init_method,
                         get_ip, get_open_port, make_async)
-from vllm.worker.worker_base import WorkerWrapperBase
+from vllm.worker.worker_base import WorkerBase, WorkerWrapperBase
 
 logger = init_logger(__name__)
 
+def create_worker(worker_module_name: str, worker_class_name: str,
+                  worker_class_fn: Optional[Callable[[], Type[WorkerBase]]],
+                  **kwargs):
+    wrapper = WorkerWrapperBase(
+            worker_module_name="vllm.worker.habana_worker",
+            worker_class_name="HabanaWorker",
+    )
+    wrapper.init_worker(**kwargs)
+    return wrapper.worker
 
 class HabanaExecutor(ExecutorBase):
 
