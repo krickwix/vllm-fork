@@ -13,8 +13,8 @@ from vllm.logger import init_logger
 from vllm.triton_utils import maybe_set_triton_cache_manager
 from vllm.executor.multiproc_worker_utils import (ProcessWorkerWrapper,
                                                   ResultHandler, WorkerMonitor)
-from vllm.executor.distributed_gpu_executor import ( # yapf: disable
-    DistributedGPUExecutor, DistributedGPUExecutorAsync)
+from vllm.executor.distributed_habana_executor import ( # yapf: disable
+    DistributedHabanaExecutor, DistributedHabanaExecutorAsync)
 from vllm.utils import _run_task_with_lock, make_async, get_vllm_instance_id, get_distributed_init_method, get_open_port, update_environment_variables
 from vllm.model_executor.layers.sampler import SamplerOutput
 from vllm.sequence import ExecuteModelRequest
@@ -23,7 +23,7 @@ import habana_frameworks.torch.hpu as hthpu
 
 logger = init_logger(__name__)
 
-class MultiprocessingHabanaExecutor(DistributedGPUExecutor):
+class MultiprocessingHabanaExecutor(DistributedHabanaExecutor):
     """Python multiprocessing-based multi-GPU executor"""
 
     uses_ray: bool = False
@@ -203,7 +203,7 @@ class MultiprocessingHabanaExecutor(DistributedGPUExecutor):
             result.get()
 
 class MultiprocessingHabanaExecutorAsync(MultiprocessingHabanaExecutor,
-                                         DistributedGPUExecutorAsync):
+                                         DistributedHabanaExecutorAsync):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.driver_exec_model = make_async(self.driver_worker.execute_model)
