@@ -17,8 +17,8 @@ prompts = [
     "Llanfairpwllgwyngyll is located in country of ",
 ]
 ref_answers = [
-    "Germany", "Paris", "United States", "Poland", "Poland",
-    "California", "Wales"
+    "Germany", "Paris", "United States", "Poland", "Poland", "California",
+    "Wales"
 ]
 # Create a sampling params object.
 sampling_params = SamplingParams(temperature=0, n=1, use_beam_search=False)
