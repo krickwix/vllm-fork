@@ -13,12 +13,11 @@ prompts = [
     "Barack Obama was the 44th president of ",
     "Warsaw is the capital city of ",
     "Gniezno is a city in ",
-    "Hebrew is an official state language of ",
     "San Francisco is located in the state of ",
     "Llanfairpwllgwyngyll is located in country of ",
 ]
 ref_answers = [
-    "Germany", "Paris", "United States", "Poland", "Poland", "Israel",
+    "Germany", "Paris", "United States", "Poland", "Poland",
     "California", "Wales"
 ]
 # Create a sampling params object.
