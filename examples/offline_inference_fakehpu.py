@@ -9,6 +9,7 @@ if os.environ.get('VLLM_USE_FAKE_HPU', '0') != '0':
 # Sample prompts.
 prompts = [
     "Berlin is the capital city of ",
+    "Louvre is located in the city of ",
     "Barack Obama was the 44th president of ",
     "Warsaw is the capital city of ",
     "Gniezno is a city in ",
@@ -17,7 +18,7 @@ prompts = [
     "Llanfairpwllgwyngyll is located in country of ",
 ]
 ref_answers = [
-    "Germany", "United States", "Poland", "Poland", "Israel",
+    "Germany", "Paris", "United States", "Poland", "Poland", "Israel",
     "California", "Wales"
 ]
 # Create a sampling params object.
