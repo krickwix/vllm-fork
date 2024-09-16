@@ -1130,36 +1130,16 @@ async def _run_task_with_lock(task: Callable, lock: asyncio.Lock, *args,
 def _create_dummy_modules():
     import importlib
     import types
+    from unittest.mock import MagicMock
 
-    habana_frameworks = types.ModuleType('habana_frameworks')
+    # Adding dummy submodules to habana_frameworks.torch for cpu-test.
     spec = importlib.util.spec_from_loader('habana_frameworks', loader=None)
-    habana_frameworks.__spec__ = spec
-    habana_frameworks.torch = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch')
-    habana_frameworks.torch.core = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch.core')
-
-    sys.modules['habana_frameworks'] = habana_frameworks
-    sys.modules['habana_frameworks.torch'] = habana_frameworks.torch
-    sys.modules['habana_frameworks.torch.core'] = habana_frameworks.torch.core
-
-    habana_frameworks.torch.utils = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch.utils')
-    habana_frameworks.torch.utils.internal = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch.utils.internal')
-    sys.modules[
-        'habana_frameworks.torch.utils'] = habana_frameworks.torch.utils
-    sys.modules['habana_frameworks.torch.utils.internal'] = (
-        habana_frameworks.torch.utils.internal)
-
-    habana_frameworks.torch.internal = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch.internal')
-    habana_frameworks.torch.internal.bridge_config = types.ModuleType(  # type: ignore
-        'habana_frameworks.torch.internal.bridge_config')
-    sys.modules[
-        'habana_frameworks.torch.internal'] = habana_frameworks.torch.internal
-    sys.modules['habana_frameworks.torch.internal.bridge_config'] = (
-        habana_frameworks.torch.internal.bridge_config)
+    sys.modules['habana_frameworks'] = MagicMock()
+    sys.modules['habana_frameworks'].__spec__ = spec
+    sys.modules['habana_frameworks.torch'] = MagicMock()
+    sys.modules['habana_frameworks.torch.core'] = MagicMock()
+    sys.modules['habana_frameworks.torch.utils.internal'] = MagicMock()
+    sys.modules['habana_frameworks.torch.internal.bridge_config'] = MagicMock()
 
     torch.hpu = types.ModuleType('torch.hpu')  # type: ignore
     sys.modules['torch.hpu'] = torch.hpu
