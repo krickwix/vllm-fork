@@ -85,6 +85,7 @@ class DistributedHabanaExecutor(HabanaExecutor):
             'VLLM_HPU_LOG_STEP_CPU_FALLBACKS_ALL', '0') != '0'
         log_cpu_fallbacks = os.environ.get('VLLM_HPU_LOG_STEP_CPU_FALLBACKS',
                                            '0') != '0' or log_cpu_fallbacks_all
+        print("\n\n\n EXECUTING MODEL \n\n\n")
         if log_graph_compilation or log_cpu_fallbacks:
             from habana_frameworks.torch.hpu.metrics import metric_localcontext
             seq_group_metadata_list = execute_model_req.seq_group_metadata_list
@@ -114,6 +115,7 @@ class DistributedHabanaExecutor(HabanaExecutor):
                 cpu_fallback_ctx as cpu_fallback_local_metric:
                 # output = self.driver_worker.execute_model(execute_model_req)
                 if self.parallel_worker_tasks is None:
+                    print("\n\n\n CHECK CHECK CHECK \n\n\n")
                     self.parallel_worker_tasks = self._run_workers(
                         "start_worker_execution_loop",
                         async_run_tensor_parallel_workers_only=True,

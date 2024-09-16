@@ -17,12 +17,10 @@ from vllm.worker.worker_base import WorkerBase, WorkerWrapperBase
 
 logger = init_logger(__name__)
 
-def create_worker(worker_module_name: str, worker_class_name: str,
-                  worker_class_fn: Optional[Callable[[], Type[WorkerBase]]],
-                  **kwargs):
+def create_worker(worker_module_name, worker_class_name, **kwargs):
     wrapper = WorkerWrapperBase(
-            worker_module_name="vllm.worker.habana_worker",
-            worker_class_name="HabanaWorker",
+        worker_module_name=worker_module_name,
+        worker_class_name=worker_class_name,
     )
     wrapper.init_worker(**kwargs)
     return wrapper.worker
