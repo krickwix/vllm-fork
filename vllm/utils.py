@@ -1133,20 +1133,21 @@ def migrate_to_cpu():
 
     torch.hpu = MagicMock(name="torch.hpu")
 
-    # Adding dummy submodules to habana_frameworks.torch for cpu-test, function from default modules will do nothing by default
+    # Adding dummy submodules to habana_frameworks.torch for cpu-test,
+    # functions from dummy modules will do nothing by default
     spec = importlib.util.spec_from_loader('habana_frameworks', loader=None)
     sys.modules['habana_frameworks'] = MagicMock()
     sys.modules['habana_frameworks'].__spec__ = spec
 
-    builtin_import = __builtins__['__import__']
+    builtin_import = __builtins__['__import__']  # type: ignore
 
     def import_wrapper(name, *args, **kwargs):
-        if 'habana_frameworks' in name:            
+        if 'habana_frameworks' in name:
             sys.modules[name] = MagicMock()
         return builtin_import(name, *args, **kwargs)
 
     __builtins__['__import__'] = import_wrapper
-    
-    # In case you want to mock a function to actually do something you need to do it this way:
+
+    # In case you want to mock a function to actually do something
     import habana_frameworks.torch as htorch
     htorch.utils.internal.is_lazy.return_value = False
