@@ -71,7 +71,6 @@ def _apply_lora(
     x: torch.Tensor,
     lora_a_stacked: torch.Tensor,
     lora_b_stacked: torch.Tensor,
-    indices: torch.Tensor,
     output: torch.Tensor,
 ):
     """Applies lora to each input.
@@ -92,12 +91,7 @@ def _apply_lora(
     org_output = output
     x = x.view(-1, x.shape[-1])
     output = output.view(-1, output.shape[-1])
-    indices = indices.view(-1)
-    if current_platform.is_hpu():
-        dispatch_bgmv_linear(output, x, lora_a_stacked, lora_b_stacked,
-                             indices, 0, 1.0)
-    else:
-        add_lora(output, x, lora_a_stacked, lora_b_stacked, indices, 0, 1.0)
+    dispatch_bgmv_linear(output, x, lora_a_stacked, lora_b_stacked, 0, 1.0)
     return output.view_as(org_output)
 
 
@@ -105,7 +99,6 @@ def _apply_lora_packed_nslice(
     x: torch.Tensor,
     lora_a_stacked: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     lora_b_stacked: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-    indices: torch.Tensor,
     output: torch.Tensor,
     output_slices: Tuple[int, ...],
 ):
@@ -132,18 +125,11 @@ def _apply_lora_packed_nslice(
     org_output = output
     x = x.view(-1, x.shape[-1])
     output = output.view(-1, output.shape[-1])
-    indices = indices.view(-1)
     offset_left = 0
     for slice_idx in range(len(output_slices)):
-        if is_hpu():
-            dispatch_bgmv_linear(
-                output[:, offset_left:offset_left + output_slices[slice_idx]],
-                x, lora_a_stacked[slice_idx], lora_b_stacked[slice_idx],
-                indices, 0, 1.0)
-        else:
-            add_lora_slice(output, x, lora_a_stacked[slice_idx],
-                           lora_b_stacked[slice_idx], indices, 0, 1.0,
-                           offset_left, output_slices[slice_idx])
+        dispatch_bgmv_linear(
+            output[:, offset_left:offset_left + output_slices[slice_idx]],
+            x, lora_a_stacked[slice_idx], lora_b_stacked[slice_idx], 0, 1.0)
         offset_left += output_slices[slice_idx]
     return output.view_as(org_output)
 
@@ -309,22 +295,7 @@ class VocabParallelEmbeddingWithLoRA(BaseLayerWithLoRA):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         added_tokens_mask = x > self.base_layer.org_vocab_size - 1
         embeddings_indices = None
-        if current_platform.is_hpu():
-            embedding_len = self.indices_len[3]
-            # NOTE(vgoel): These asserts can be skipped when upstreaming.
-            # Can be removed from vllm-fork also once lora functionality
-            # on Gaudi stabilizes.
-            if current_platform.is_hpu():
-                emb_len = embedding_len
-                x_shape = x.shape
-                ind_shape = self.embeddings_indices[1].shape
-                assert embedding_len == x.shape[0] * x.shape[1], \
-                    f"Extra Info: {emb_len}, {x_shape}, {ind_shape}"
-                assert embedding_len <= self.embeddings_indices[1].shape[0], \
-                    f"Extra Info: {emb_len}, {x.shape}, {ind_shape}"
-            indices = self.embeddings_indices[1][:embedding_len].view_as(x)
-        else:
-            embeddings_indices = self.punica_wrapper.embeddings_indices
+        embeddings_indices = self.punica_wrapper.embeddings_indices
         indices = embeddings_indices[1].view_as(x)
         full_lora_a_embeddings = F.embedding(
             x + indices,
@@ -344,8 +315,7 @@ class VocabParallelEmbeddingWithLoRA(BaseLayerWithLoRA):
                 full_lora_a_embeddings.shape[1], -1)
         if current_platform.is_hpu():
             dispatch_bgmv_embedding(full_output, full_lora_a_embeddings,
-                                    self.lora_b_stacked,
-                                    self.indices[:self.indices_len[0]], 0, 1.0)
+                                    self.lora_b_stacked, 0, 1.0)
         else:
             # Embedding layer only need expand op
             self.punica_wrapper.add_expand(full_output,
@@ -422,8 +392,11 @@ class ReplicatedLinearWithLoRA(BaseLayerWithLoRA):
     def apply(self, x: torch.Tensor,
               bias: Optional[torch.Tensor]) -> torch.Tensor:
         output = self.base_layer.quant_method.apply(self.base_layer, x, bias)
-        self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
-                                     self.lora_b_stacked, 1.0)
+        if current_platform.is_hpu():
+            _apply_lora(x, self.lora_a_stacked, self.lora_b_stacked, output)
+        else:
+            self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
+                                         self.lora_b_stacked, 1.0)
         return output
 
     def forward(self, input_):
@@ -540,7 +513,10 @@ class ColumnParallelLinearWithLoRA(BaseLayerWithLoRA):
     def apply(self, x: torch.Tensor,
               bias: Optional[torch.Tensor]) -> torch.Tensor:
         output = self.base_layer.quant_method.apply(self.base_layer, x, bias)
-        self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
+        if current_platform.is_hpu():
+            _apply_lora(x, self.lora_a_stacked, self.lora_b_stacked, output)
+        else:
+            self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
                                      self.lora_b_stacked, 1.0)
         return output
 
@@ -692,7 +668,12 @@ class MergedColumnParallelLinearWithLoRA(ColumnParallelLinearWithLoRA):
     def apply(self, x: torch.Tensor,
               bias: Optional[torch.Tensor]) -> torch.Tensor:
         output = self.base_layer.quant_method.apply(self.base_layer, x, bias)
-        self.punica_wrapper.add_lora_packed_nslice(
+        if current_platform.is_hpu():
+            _apply_lora_packed_nslice(x, self.lora_a_stacked, self.lora_b_stacked,
+                                      output,
+                                      (self.output_dim, self.output_dim))
+        else:
+            self.punica_wrapper.add_lora_packed_nslice(
             output, x, self.lora_a_stacked, self.lora_b_stacked, 1.0,
             (self.output_dim, self.output_dim))
         return output
@@ -956,10 +937,15 @@ class MergedQKVParallelLinearWithLora(ColumnParallelLinearWithLoRA):
     def apply(self, x: torch.Tensor,
               bias: Optional[torch.Tensor]) -> torch.Tensor:
         output = self.base_layer.quant_method.apply(self.base_layer, x, bias)
-        self.punica_wrapper.add_lora_packed_nslice(output, x,
-                                                   self.lora_a_stacked,
-                                                   self.lora_b_stacked, 1.0,
-                                                   self.output_slices)
+        if current_platform.is_hpu():
+            _apply_lora_packed_nslice(x,
+                                      self.lora_a_stacked, self.lora_b_stacked,
+                                      output, self.output_slices)
+        else:
+            self.punica_wrapper.add_lora_packed_nslice(output, x,
+                                                       self.lora_a_stacked,
+                                                       self.lora_b_stacked, 1.0,
+                                                       self.output_slices)
         return output
 
     @classmethod
@@ -1055,8 +1041,11 @@ class RowParallelLinearWithLoRA(BaseLayerWithLoRA):
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         output = self.base_layer.quant_method.apply(self.base_layer, x)
-        self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
-                                     self.lora_b_stacked, 1.0)
+        if current_platform.is_hpu():
+            _apply_lora(x, self.lora_a_stacked, self.lora_b_stacked, output)
+        else:
+            self.punica_wrapper.add_lora(output, x, self.lora_a_stacked,
+                                         self.lora_b_stacked, 1.0)
         return output
 
     def forward(self, input_):
@@ -1301,7 +1290,10 @@ class LogitsProcessorWithLoRA(BaseLayerWithLoRA):
                lora_logits.shape[1], ] = lora_logits
 
         # LogitsProcessorWithLoRA always using bgmv
-        self.punica_wrapper.add_lora_logits(logits, hidden_states,
+        if current_platform.is_hpu():
+            _apply_lora(hidden_states, self.lora_a_stacked, self.lora_b_stacked, logits)
+        else:
+            self.punica_wrapper.add_lora_logits(logits, hidden_states,
                                             self.lora_a_stacked,
                                             self.lora_b_stacked, 1.0)
 
