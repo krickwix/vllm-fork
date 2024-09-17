@@ -1127,40 +1127,26 @@ async def _run_task_with_lock(task: Callable, lock: asyncio.Lock, *args,
         return await task(*args, **kwargs)
 
 
-def _create_dummy_modules():
+def migrate_to_cpu():
     import importlib
-    import types
     from unittest.mock import MagicMock
 
-    # Adding dummy submodules to habana_frameworks.torch for cpu-test.
+    torch.hpu = MagicMock(name="torch.hpu")
+
+    # Adding dummy submodules to habana_frameworks.torch for cpu-test, function from default modules will do nothing by default
     spec = importlib.util.spec_from_loader('habana_frameworks', loader=None)
     sys.modules['habana_frameworks'] = MagicMock()
     sys.modules['habana_frameworks'].__spec__ = spec
-    sys.modules['habana_frameworks.torch'] = MagicMock()
-    sys.modules['habana_frameworks.torch.core'] = MagicMock()
-    sys.modules['habana_frameworks.torch.utils.internal'] = MagicMock()
-    sys.modules['habana_frameworks.torch.internal.bridge_config'] = MagicMock()
 
-    torch.hpu = types.ModuleType('torch.hpu')  # type: ignore
-    sys.modules['torch.hpu'] = torch.hpu
+    builtin_import = __builtins__['__import__']
 
+    def import_wrapper(name, *args, **kwargs):
+        if 'habana_frameworks' in name:            
+            sys.modules[name] = MagicMock()
+        return builtin_import(name, *args, **kwargs)
 
-def _do_nothing():
-    pass
-
-
-def _return_false():
-    return False
-
-
-def _migrate_to_cpu():
+    __builtins__['__import__'] = import_wrapper
+    
+    # In case you want to mock a function to actually do something you need to do it this way:
     import habana_frameworks.torch as htorch
-
-    htorch.core.mark_step = _do_nothing
-    htorch.utils.internal.is_lazy = _return_false
-    torch.hpu.synchronize = _do_nothing
-
-
-def migrate_to_cpu():
-    _create_dummy_modules()
-    _migrate_to_cpu()
+    htorch.utils.internal.is_lazy.return_value = False
