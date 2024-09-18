@@ -13,12 +13,14 @@ from vllm.prompt_adapter.request import PromptAdapterRequest
 from vllm.sequence import ExecuteModelRequest, SamplerOutput
 from vllm.utils import (HabanaMemoryProfiler, get_distributed_init_method,
                         get_ip, get_open_port, make_async)
-from vllm.worker.worker_base import WorkerBase, WorkerWrapperBase
+from vllm.worker.worker_base import WorkerWrapperBase
 
 logger = init_logger(__name__)
 
 def create_worker(worker_module_name, worker_class_name, **kwargs):
     wrapper = WorkerWrapperBase(
+        # worker_module_name="vllm.worker.habana_worker",
+        # worker_class_name="HabanaWorker",
         worker_module_name=worker_module_name,
         worker_class_name=worker_class_name,
     )
@@ -65,12 +67,12 @@ class HabanaExecutor(ExecutorBase):
         worker_kwargs = self._get_worker_kwargs(local_rank, rank,
                                                 distributed_init_method)
         if self.speculative_config is None:
-            worker_kwargs.update(worker_module_name="vllm.worker.worker",
-                                 worker_class_name="Worker")
+            worker_kwargs.update(worker_module_name="vllm.worker.habana_worker",
+                                 worker_class_name="HabanaWorker",)
         else:
             worker_kwargs.update(
-                worker_module_name="vllm.spec_decode.spec_decode_worker",
-                worker_class_name="create_spec_worker")
+                worker_module_name="vllm.worker.habana_worker",
+                worker_class_name="HabanaWorker",)
         return worker_kwargs
 
     def _create_worker(self,
