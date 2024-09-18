@@ -895,6 +895,7 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
             block_list=None,
             block_mapping=None,
             block_usage=None,
+            block_groups=None,
             attn_bias=None,
             seq_lens_tensor=seq_lens_tensor,
             num_prefills=real_num_seqs,
@@ -1010,7 +1011,11 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
         num_decode_tokens = sum(seq_lens)
 
         blocks_used = [len(bt) for bt in block_tables if bt]
-        block_list = list(itertools.chain(*block_tables))
+        block_list = []
+        block_groups = []
+        for i, bt in enumerate(block_tables):
+            block_list.extend(bt)
+            block_groups.extend([i] * len(bt))
         block_mapping_nested: List[List[int]] = [
             [i] * b_u for i, b_u in enumerate(blocks_used)
         ]
@@ -1029,6 +1034,7 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
         block_list = pad_list(block_list, block_bucket_size, _PAD_SLOT_ID)
         block_mapping = pad_list(block_mapping, block_bucket_size, 0)
         block_usage = pad_list(block_usage, block_bucket_size, 0)
+        block_groups = pad_list(block_groups, block_bucket_size, len(block_groups))
 
         block_list = torch.tensor(block_list,
                                   dtype=torch.int,
@@ -1044,11 +1050,14 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
                                     dtype=torch.long,
                                     device=self.device)
 
+        block_groups = torch.tensor(block_groups, dtype=torch.long, device=self.device)
+
         attn_metadata = self.attn_backend.make_metadata(
             is_prompt=False,
             block_list=block_list,
             block_mapping=block_mapping,
             block_usage=block_usage,
+            block_groups=block_groups,
             attn_bias=None,
             seq_lens_tensor=None,
             num_prefills=0,
@@ -1266,7 +1275,7 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
         # input_hash("abc") != input_hash("cba")
         attention_metadata = subtuple(metadata, 'TrimmedAttentionMetadata', [
             'attn_bias', 'seq_lens_tensor', 'block_list', 'block_mapping',
-            'block_usage', 'slot_mapping', 'is_prompt'
+            'block_usage', 'block_groups', 'slot_mapping', 'is_prompt'
         ])
         return attention_metadata
 
