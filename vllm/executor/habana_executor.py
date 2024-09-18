@@ -66,13 +66,8 @@ class HabanaExecutor(ExecutorBase):
             distributed_init_method: Optional[str] = None) -> Dict:
         worker_kwargs = self._get_worker_kwargs(local_rank, rank,
                                                 distributed_init_method)
-        if self.speculative_config is None:
-            worker_kwargs.update(worker_module_name="vllm.worker.habana_worker",
-                                 worker_class_name="HabanaWorker",)
-        else:
-            worker_kwargs.update(
-                worker_module_name="vllm.worker.habana_worker",
-                worker_class_name="HabanaWorker",)
+        worker_kwargs.update(worker_module_name="vllm.worker.habana_worker",
+                             worker_class_name="HabanaWorker",)
         return worker_kwargs
 
     def _create_worker(self,
