@@ -10,12 +10,12 @@ import torch
 
 from vllm.executor.habana_executor import create_worker
 from vllm.logger import init_logger
-from vllm.triton_utils import maybe_set_triton_cache_manager
 from vllm.executor.multiproc_worker_utils import (ProcessWorkerWrapper,
                                                   ResultHandler, WorkerMonitor)
 from vllm.executor.distributed_habana_executor import ( # yapf: disable
     DistributedHabanaExecutor, DistributedHabanaExecutorAsync)
-from vllm.utils import _run_task_with_lock, make_async, get_vllm_instance_id, get_distributed_init_method, get_open_port, update_environment_variables
+from vllm.utils import (_run_task_with_lock, make_async, get_vllm_instance_id, 
+                        get_distributed_init_method, get_open_port)
 from vllm.model_executor.layers.sampler import SamplerOutput
 from vllm.sequence import ExecuteModelRequest
 

@@ -10,8 +10,7 @@ from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
 from vllm.sequence import ExecuteModelRequest, SamplerOutput
 
-from vllm.utils import (HabanaMemoryProfiler, get_distributed_init_method,
-                        get_ip, get_open_port, make_async)
+from vllm.utils import HabanaMemoryProfiler
 
 logger = init_logger(__name__)
 
@@ -224,7 +223,8 @@ class DistributedHabanaExecutor(HabanaExecutor):
         raise NotImplementedError
 
 
-class DistributedHabanaExecutorAsync(DistributedHabanaExecutor, ExecutorAsyncBase):
+class DistributedHabanaExecutorAsync(DistributedHabanaExecutor,
+                                     ExecutorAsyncBase):
 
     async def execute_model_async(
             self,

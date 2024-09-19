@@ -4,7 +4,7 @@
 
 import contextlib
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable, Type
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from vllm.executor.executor_base import ExecutorAsyncBase, ExecutorBase
 from vllm.logger import init_logger
