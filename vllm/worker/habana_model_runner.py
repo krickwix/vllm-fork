@@ -1032,8 +1032,8 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
         block_bucket_size = find_bucket(len(block_list),
                                         self.decode_block_bucket_cfg)
         block_list = pad_list(block_list, block_bucket_size, _PAD_SLOT_ID)
-        block_mapping = pad_list(block_mapping, block_bucket_size, 0)
-        block_usage = pad_list(block_usage, block_bucket_size, 0)
+        block_mapping = pad_list(block_mapping, block_bucket_size, -1)
+        block_usage = pad_list(block_usage, block_bucket_size, 1)
         block_groups = pad_list(block_groups, block_bucket_size, len(block_groups))
 
         block_list = torch.tensor(block_list,
