@@ -1896,7 +1896,7 @@ class HabanaModelRunner(
                                             device="hpu"))
             if logits_tensor is not None:
                 logits_tensor_list.append(logits_tensor[torch.tensor(
-                    logits_ids_list, device = prev_logits_device])
+                    logits_ids_list, device=prev_logits_device)])
 
             prev_logits = torch.cat(logits_tensor_list, dim=0)
 
