@@ -1343,11 +1343,11 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
             intermediate_tensors = None
             if not get_pp_group().is_first_rank:
                 print("\n\n\n SELF MODEL = ", self.model)
-                intermediate_tensors = self.model.make_empty_intermediate_tensors(
-                    batch_size=batch_size,
-                    dtype=self.model_config.dtype,
-                    device=self.device)
-            self.execute_model(inputs, kv_caches, intermediate_tensors=intermediate_tensors, warmup_mode=True)
+                # intermediate_tensors = self.model.make_empty_intermediate_tensors(
+                #     batch_size=batch_size,
+                #     dtype=self.model_config.dtype,
+                #     device=self.device)
+            self.execute_model(inputs, kv_caches, warmup_mode=True)
             torch.hpu.synchronize()
             if profiler:
                 profiler.step()
