@@ -24,6 +24,7 @@ from vllm.attention import AttentionMetadata, get_attn_backend
 from vllm.config import (CacheConfig, DeviceConfig, LoadConfig, LoRAConfig,
                          ModelConfig, MultiModalConfig, ParallelConfig,
                          SchedulerConfig)
+from vllm.distributed import get_pp_group
 from vllm.distributed.parallel_state import get_world_group
 from vllm.hpu.ops import LoraMask as LoraMask
 from vllm.logger import init_logger
@@ -317,6 +318,9 @@ class HpuModelAdapter():
 
     def sample(self, *args, **kwargs):
         return self.model.sample(*args, **kwargs)
+    
+    def make_empty_intermediate_tensors(self, *args, **kwargs):
+        return self.model.make_empty_intermediate_tensors(*args, **kwargs)
 
 
 class PreparePromptMetadata(NamedTuple):
@@ -1336,7 +1340,14 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
             profiler.start()
         for _ in range(times):
             inputs = self.prepare_model_input(seqs)
-            self.execute_model(inputs, kv_caches, warmup_mode=True)
+            intermediate_tensors = None
+            if not get_pp_group().is_first_rank:
+                print("\n\n\n SELF MODEL = ", self.model)
+                intermediate_tensors = self.model.make_empty_intermediate_tensors(
+                    batch_size=batch_size,
+                    dtype=self.model_config.dtype,
+                    device=self.device)
+            self.execute_model(inputs, kv_caches, intermediate_tensors=intermediate_tensors, warmup_mode=True)
             torch.hpu.synchronize()
             if profiler:
                 profiler.step()

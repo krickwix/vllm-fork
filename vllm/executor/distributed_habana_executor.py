@@ -42,10 +42,10 @@ class DistributedHabanaExecutor(HabanaExecutor):
         # Since we use a shared centralized controller, we take the minimum
         # number of blocks across all workers to make sure all the memory
         # operators can be applied to all workers.
-        num_gpu_blocks = min(b[0] for b in num_blocks)
+        num_hpu_blocks = min(b[0] for b in num_blocks)
         num_cpu_blocks = min(b[1] for b in num_blocks)
 
-        return num_gpu_blocks, num_cpu_blocks
+        return num_hpu_blocks, num_cpu_blocks
 
     def initialize_cache(self, num_gpu_blocks: int,
                          num_cpu_blocks: int) -> None:
