@@ -1884,7 +1884,6 @@ class HabanaModelRunner(
                                 logits_ids_list = [seq_data.prev_logits_idx]
                                 logits_tensor = seq_data.prev_logits
                         else:
-                            # warmup only, TODO add a check
                             logits_tensor_list.append(
                                 torch.zeros([1, self.vocab_size],
                                             dtype=torch.float,
