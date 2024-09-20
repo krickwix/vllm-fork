@@ -1863,7 +1863,6 @@ class HabanaModelRunner(
             logits_ids_list = []
             logits_tensor = None
             logits_tensor_list = []
-            vocab_size = self.vocab_size
             if model_input.seq_group_metadata_list is not None:
                 for seq_group_metadata in model_input.seq_group_metadata_list:
                     assert len(seq_group_metadata.seq_data) == 1
@@ -1887,7 +1886,7 @@ class HabanaModelRunner(
                         else:
                             # warmup only, TODO add a check
                             logits_tensor_list.append(
-                                torch.zeros([1, vocab_size],
+                                torch.zeros([1, self.vocab_size],
                                             dtype=torch.float,
                                             device="hpu"))
             if logits_tensor is not None:
