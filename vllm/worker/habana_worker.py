@@ -9,7 +9,7 @@ from typing import List, Optional, Set, Tuple, Type
 import habana_frameworks.torch as htorch  # noqa:F401
 import torch
 import torch.distributed
-from vllm_hpu_extension import HabanaMemoryProfiler
+from vllm_hpu_extension.profiler import HabanaMemoryProfiler
 
 from vllm.config import (CacheConfig, DeviceConfig, LoadConfig, LoRAConfig,
                          ModelConfig, ObservabilityConfig, ParallelConfig,
