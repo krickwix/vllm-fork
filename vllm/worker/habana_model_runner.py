@@ -550,6 +550,7 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
         # Lazy initialization
         self.lora_manager: LRUCacheWorkerLoRAManager = None
         self.model: torch.nn.Module = None
+        self.inc_initialized_successfully = False
 
         # Profiler stats
         self.profiler_counter_helper = HabanaProfilerCounterHelper()
@@ -632,6 +633,7 @@ class HabanaModelRunnerBase(ModelRunnerBase[TModelInputForHPU]):
                         self.model = convert(self.model, config)
                     htcore.hpu_initialize(self.model,
                                           mark_only_scales_as_const=True)
+                self.inc_initialized_successfully = True
                 logger.info("Preparing model with INC took %s",
                             m_inc.get_summary_string())
             elif not is_fake_hpu():
@@ -1938,13 +1940,19 @@ class HabanaModelRunner(
         return [output]
 
     def shutdown_inc(self):
-        is_inc_used = (model_config :=
-                       getattr(self, "model_config", None)) and getattr(
-                           model_config, "quantization", None) == 'inc'
-        is_model_initialized = (model_wrapper := getattr(
-            self, "model", None)) and getattr(model_wrapper, "model", None)
-
-        if is_inc_used and is_model_initialized:
+        from operator import attrgetter
+        can_finalize_inc = False
+        try:
+            is_inc_used = attrgetter("model_config.quantization")(
+                self) == 'inc'
+            is_model_initialized = attrgetter("model.model")(self) is not None
+            is_inc_initialized = attrgetter("inc_initialized_successfully")(
+                self)
+            can_finalize_inc = is_inc_used and is_model_initialized and \
+                is_inc_initialized
+        except AttributeError:
+            pass
+        if can_finalize_inc:
             from neural_compressor.torch.quantization import (
                 finalize_calibration)
             finalize_calibration(self.model.model)
