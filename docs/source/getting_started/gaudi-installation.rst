@@ -65,7 +65,7 @@ Supported Features
 ==================
 
 -  `Offline batched
-   inference <getting_started/quickstart.rst#offline-batched-inference>`__
+   inference inference <https://github.com/HabanaAI/vllm-fork/blob/habana_main/docs/source/getting_started/quickstart.rst#offline-batched-inference>`__
 -  Online inference via `OpenAI-Compatible
    Server <https://github.com/HabanaAI/vllm-fork/blob/habana_main/docs/source/getting_started/quickstart.rst#openai-compatible-server>`__
 -  HPU autodetection - no need to manually select device within vLLM
