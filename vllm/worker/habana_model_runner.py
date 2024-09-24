@@ -1938,14 +1938,16 @@ class HabanaModelRunner(
         return [output]
 
     def shutdown_inc(self):
-        print('inc shutdown')
-        if (model_config := getattr(self, "model_config", None)) and \
-                         getattr(model_config, "quantization", None) == 'inc':
-            print('inc shutdown start')
+        is_inc_used = (model_config :=
+                       getattr(self, "model_config", None)) and getattr(
+                           model_config, "quantization", None) == 'inc'
+        is_model_initialized = (model_wrapper := getattr(
+            self, "model", None)) and getattr(model_wrapper, "model", None)
+
+        if is_inc_used and is_model_initialized:
             from neural_compressor.torch.quantization import (
                 finalize_calibration)
             finalize_calibration(self.model.model)
-            print('inc shutdown')
 
     def __del__(self):
         self.shutdown_inc()
