@@ -1940,22 +1940,17 @@ class HabanaModelRunner(
         return [output]
 
     def shutdown_inc(self):
-        from operator import attrgetter
         can_finalize_inc = False
-        try:
-            is_inc_used = attrgetter("model_config.quantization")(
-                self) == 'inc'
-            is_model_initialized = attrgetter("model.model")(self) is not None
-            is_inc_initialized = attrgetter("inc_initialized_successfully")(
-                self)
-            can_finalize_inc = is_inc_used and is_model_initialized and \
-                is_inc_initialized
-        except AttributeError:
-            pass
+        with contextlib.suppress(AttributeError):
+            can_finalize_inc = (self.model_config.quantization == 'inc') and \
+                (self.model.model is not None) and \
+                self.inc_initialized_successfully and \
+                not getattr(self, "_is_inc_finalized", False)
         if can_finalize_inc:
             from neural_compressor.torch.quantization import (
                 finalize_calibration)
             finalize_calibration(self.model.model)
+            self._is_inc_finalized = True
 
     def __del__(self):
         self.shutdown_inc()
